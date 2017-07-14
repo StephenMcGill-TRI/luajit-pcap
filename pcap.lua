@@ -52,13 +52,16 @@ function lib.entries(fname)
   end
   local npkt = (sz - ffi.sizeof'pcap_file') / ffi.sizeof('pcap_record')
   return coroutine.wrap(function(t)
+    local cnt = 0
     while ptr < ptr_end do
+      cnt = cnt + 1
       local ptr_record = ffi.cast('pcap_record*', ptr)
       local t = ptr_record.ts_sec + ptr_record.ts_usec / 1e6
-      local packet = ffi.cast("uint8_t*", ptr_record + 1)
-      local len = ptr_record.incl_len
-      coroutine.yield(t, {packet, len}, ptr_record, record_sz + len)
-      ptr = packet + len
+      local incl_len = ptr_record.incl_len
+      -- local orig_len = ptr_record.orig_len
+      local packet = ptr + record_sz
+      coroutine.yield(t, {packet, incl_len}, ptr_record, record_sz + incl_len)
+      ptr = packet + incl_len
     end
     mmap.close(ptr, sz)
     return
